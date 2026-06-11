@@ -14,6 +14,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 html{font-size:16px;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html.ui-l{font-size:18px}
+html.ui-xl{font-size:20px}
+html.ui-s{font-size:14px}
 :root{
   --paper:#F3EFE6;
   --ink:#221C16;
@@ -43,7 +46,10 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 input{font-family:inherit;font-size:inherit;color:inherit;-webkit-user-select:text;user-select:text}
 
 /* ---------- App shell ---------- */
-.shell{height:100%;display:flex;flex-direction:column}
+.shell{height:100%;display:flex;flex-direction:column;transform-origin:top left}
+body.uiscale-s .shell{zoom:.88}
+body.uiscale-l .shell{zoom:1.12}
+body.uiscale-xl .shell{zoom:1.25}
 .appbar{
   padding:calc(env(safe-area-inset-top) + 10px) 18px 10px;max-width:100%;
   display:flex;align-items:center;justify-content:space-between;
@@ -285,8 +291,9 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <div class="shell">
   <header class="appbar">
-    <div class="brand">Folio<span class="dot">.</span><span class="ver">v5</span></div>
+    <div class="brand">Folio<span class="dot">.</span><span class="ver">v6</span></div>
     <div class="appbar-btns">
+      <button class="appbar-action" id="btn-uiscale" aria-label="Tamaño" style="padding:0 14px;font-size:18px">Aa</button>
       <button class="appbar-action solid" id="btn-install" style="display:none">Instalar</button>
       <button class="appbar-action" id="btn-import">Importar</button>
     </div>
@@ -377,7 +384,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <script>
 'use strict';
-const VERSION = 5;
+const VERSION = 6;
 
 /* ============ Utilidades ============ */
 const $ = s => document.querySelector(s);
@@ -437,7 +444,9 @@ function genCover(title, author) {
   const c = 'c' + (hash(String(title)) % 5);
   return `<div class="gen ${c}"><div class="gt">${esc(title)}</div><div class="ga">${esc(author || '')}</div></div>`;
 }
-const gbCover = id => `https://www.gutenberg.org/cache/epub/${id}/pg${id}.cover.medium.jpg`;
+// Gutenberg bloquea hotlinking (403). Para portadas fiables usamos Open Library por OLID/ISBN cuando exista;
+// si no, portada generada. Por defecto NO intentamos gutenberg.
+const gbCover = () => '';
 
 /* ============ Biblioteca ============ */
 async function renderLibrary() {
@@ -532,6 +541,52 @@ function searchLocal(q, lang) {
   return out.slice(0, 30);
 }
 
+/* ============ Wikisource ES (Wikimedia, CORS real, español de calidad) ============ */
+const WS_API = 'https://es.wikisource.org/w/api.php';
+async function searchWikisource(q) {
+  // origin=* hace que Wikimedia devuelva Access-Control-Allow-Origin
+  const url = WS_API + '?action=query&format=json&origin=*&list=search&srlimit=12' +
+    '&srnamespace=0&srsearch=' + encodeURIComponent(q);
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 9000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal }); clearTimeout(t);
+    if (!r.ok) throw new Error('ws-' + r.status);
+    const j = await r.json();
+    return ((j.query && j.query.search) || []).map(s => ({ title: s.title }));
+  } catch (e) { clearTimeout(t); throw e; }
+}
+async function downloadWikisource(meta) {
+  // Texto plano del artículo (incluye subpáginas/capítulos enlazados en muchas obras)
+  const url = WS_API + '?action=query&format=json&origin=*&prop=extracts&explaintext=1' +
+    '&redirects=1&titles=' + encodeURIComponent(meta.title);
+  const r = await fetch(url);
+  const j = await r.json();
+  const pages = j.query && j.query.pages;
+  const page = pages && pages[Object.keys(pages)[0]];
+  let text = (page && page.extract) || '';
+  // Si el extract es muy corto, probablemente es un índice con capítulos en subpáginas
+  if (text.length < 1500) {
+    const sub = await fetch(WS_API + '?action=query&format=json&origin=*&list=allpages&aplimit=80&apnamespace=0&apprefix=' + encodeURIComponent(meta.title + '/'));
+    const sj = await sub.json();
+    const subs = ((sj.query && sj.query.allpages) || []).map(p => p.title);
+    if (subs.length) {
+      const parts = [];
+      for (const st of subs.slice(0, 60)) {
+        const rr = await fetch(WS_API + '?action=query&format=json&origin=*&prop=extracts&explaintext=1&titles=' + encodeURIComponent(st));
+        const jj = await rr.json();
+        const pp = jj.query.pages; const pg = pp[Object.keys(pp)[0]];
+        if (pg && pg.extract) parts.push('# ' + st.split('/').pop() + '\n\n' + pg.extract);
+      }
+      if (parts.length) text = parts.join('\n\n');
+    }
+  }
+  if (!text || text.length < 500) throw Object.assign(new Error('texto no disponible en Wikisource'), { user: true });
+  await putBook({
+    id: 'ws-' + meta.title, title: meta.title.replace(/_/g, ' '), author: meta.author || '',
+    coverUrl: '', text: normalizeText(text), addedAt: Date.now()
+  });
+}
+
 /* ============ Open Library (todo lo que no está en Gutenberg) ============ */
 const OL_LANG = { es: 'spa', en: 'eng' };
 async function searchOpenLibrary(q, lang) {
@@ -620,9 +675,7 @@ async function showPopular() {
 
 function gutenbergRow(rec, lang) {
   const [id, title, author, hasCover] = rec;
-  const cover = hasCover
-    ? `<img src="${gbCover(id)}" alt="" loading="lazy" onerror="this.outerHTML=window.genCoverFallback(this)">`
-    : genCover(title, author);
+  const cover = genCover(title, author);
   const payload = esc(JSON.stringify({ t: 'gb', id, title, author, hasCover }));
   return `<div class="result">
     <div class="rcover" data-title="${esc(title)}" data-author="${esc(author)}" style="position:relative">${cover}</div>
@@ -670,16 +723,40 @@ function renderGutenbergResults(hits, q, lang) {
   } else {
     html += `<p class="hint">Nada en Gutenberg${lang ? ' en ' + (lang === 'es' ? 'español — prueba «Todos»' : 'inglés') : ''} para «${esc(q)}».</p>`;
   }
-  html += `<button class="morebtn" id="ol-btn">
-    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
-    Buscar «${esc(q.slice(0, 30))}» en Open Library
-  </button>
-  <div id="ol-results"></div>`;
+  const showWS = (lang === 'es' || lang === '');
+  html += (showWS ? '<div id="ws-results"></div>' : '') +
+    `<button class="morebtn" id="ol-btn">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+      Buscar «${esc(q.slice(0, 26))}» en Open Library
+    </button>
+    <div id="ol-results"></div>`;
   $('#results').innerHTML = html;
   markOwned();
   $('#ol-btn').addEventListener('click', () => runOpenLibrary(q, lang));
-  // Si Gutenberg no tiene nada, lanzar Open Library automáticamente
-  if (!hits.length) runOpenLibrary(q, lang);
+  if (showWS) runWikisource(q);
+  if (!hits.length && !showWS) runOpenLibrary(q, lang);
+}
+
+async function runWikisource(q) {
+  const box = $('#ws-results'); if (!box) return;
+  try {
+    const items = await searchWikisource(q);
+    if (q !== lastQuery || !items.length) return;
+    const rows = items.map(it => {
+      const payload = esc(JSON.stringify({ t: 'ws', title: it.title, author: '' }));
+      return `<div class="result">
+        <div class="rcover" data-title="${esc(it.title)}" data-author="">${genCover(it.title, '')}</div>
+        <div class="rinfo">
+          <div class="rt">${esc(it.title)}</div>
+          <div class="ra">Wikisource</div>
+          <div class="rl">Wikisource · Español · texto libre</div>
+        </div>
+        <button class="dl" data-key="ws-${esc(it.title)}" data-book='${payload}' aria-label="Descargar">${DL_ICON}</button>
+      </div>`;
+    }).join('');
+    box.innerHTML = '<div class="section-label">Wikisource · Español</div>' + rows;
+    markOwned();
+  } catch (e) { /* silencioso: Wikisource es complemento */ }
 }
 
 async function runOpenLibrary(q, lang) {
@@ -736,26 +813,29 @@ async function fetchTextChain(urls) {
   }
   throw lastErr || new Error('download-failed');
 }
-const proxied = u => [
-  u,
-  'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
-  'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-  'https://corsproxy.io/?url=' + encodeURIComponent(u)
+const CORS_PROXIES = [
+  u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  u => 'https://thingproxy.freeboard.io/fetch/' + u
 ];
+const proxied = u => [u, ...CORS_PROXIES.map(p => p(u))];
 
 async function downloadGutenberg(meta) {
-  const u1 = `https://www.gutenberg.org/ebooks/${meta.id}.txt.utf-8`;
-  const u2 = `https://www.gutenberg.org/cache/epub/${meta.id}/pg${meta.id}.txt`;
-  const text = await fetchTextChain([u1, u2, ...proxied(u1).slice(1)]);
+  // Gutenberg responde 403 a fetch directo desde navegador: vamos SIEMPRE por proxy CORS.
+  const raws = [
+    `https://www.gutenberg.org/cache/epub/${meta.id}/pg${meta.id}.txt`,
+    `https://www.gutenberg.org/ebooks/${meta.id}.txt.utf-8`,
+    `https://www.gutenberg.org/files/${meta.id}/${meta.id}-0.txt`
+  ];
+  const urls = [];
+  for (const r of raws) for (const p of CORS_PROXIES) urls.push(p(r));
+  const text = await fetchTextChain(urls);
   const clean = normalizeText(stripGutenberg(text));
   if (!clean || clean.length < 500) throw new Error('empty');
   await putBook({
-    id: 'gb-' + meta.id,
-    title: meta.title,
-    author: meta.author,
-    coverUrl: meta.hasCover ? gbCover(meta.id) : '',
-    text: clean,
-    addedAt: Date.now()
+    id: 'gb-' + meta.id, title: meta.title, author: meta.author,
+    coverUrl: '', text: clean, addedAt: Date.now()
   });
 }
 
@@ -793,6 +873,7 @@ $('#results').addEventListener('click', async e => {
   btn.innerHTML = '<span class="spin"></span>';
   try {
     if (meta.t === 'gb') await downloadGutenberg(meta);
+    else if (meta.t === 'ws') await downloadWikisource(meta);
     else await downloadArchive(meta);
     btn.classList.add('have');
     btn.innerHTML = OK_ICON;
@@ -1018,13 +1099,30 @@ window.addEventListener('appinstalled', () => {
   toast('Folio instalada en tu pantalla de inicio');
 });
 
+/* ============ Escala de interfaz (ajustable por el usuario) ============ */
+const UISCALES = ['s', '', 'l', 'xl'];
+const UINAMES = { s: 'Pequeño', '': 'Normal', l: 'Grande', xl: 'Enorme' };
+let uiscale = localStorage.getItem('folio-uiscale') || '';
+function applyUIScale() {
+  document.body.classList.remove('uiscale-s', 'uiscale-l', 'uiscale-xl');
+  if (uiscale) document.body.classList.add('uiscale-' + uiscale);
+  localStorage.setItem('folio-uiscale', uiscale);
+}
+$('#btn-uiscale').addEventListener('click', () => {
+  const i = UISCALES.indexOf(uiscale);
+  uiscale = UISCALES[(i + 1) % UISCALES.length];
+  applyUIScale();
+  toast('Tamaño: ' + UINAMES[uiscale]);
+});
+applyUIScale();
+
 /* ============ Init ============ */
 renderLibrary();
 ensureCatalog('es');
 
 /* Ganchos para tests automatizados (no afectan al uso normal) */
 window.__folio = { fold, searchLocal, ensureCatalog, normalizeText, stripGutenberg, renderText,
-  downloadGutenberg, downloadArchive, searchOpenLibrary, putBook, getBook, allBooks, CAT, runSearch, showPopular };
+  downloadGutenberg, downloadArchive, downloadWikisource, searchWikisource, searchOpenLibrary, putBook, getBook, allBooks, CAT, runSearch, showPopular };
 </script>
 </body>
 </html>
