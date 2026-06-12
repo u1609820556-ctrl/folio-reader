@@ -12,6 +12,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// Carga perezosa de librerías pesadas solo cuando se necesitan
+window.loadScript = src => new Promise((res, rej) => {
+  const s = document.createElement('script'); s.src = src;
+  s.onload = res; s.onerror = () => rej(new Error('No se pudo cargar ' + src));
+  document.head.appendChild(s);
+});
+window.ensurePDFJS = async () => {
+  if (window.pdfjsLib) return window.pdfjsLib;
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  return window.pdfjsLib;
+};
+</script>
 <style>
 html{font-size:16px;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html.ui-l{font-size:18px}
@@ -91,11 +106,9 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 .empty .big{font-family:var(--display);font-size:26px;color:var(--ink);margin-bottom:12px}
 .empty p{font-size:16px;line-height:1.6}
 .grid{
-  display:grid;grid-template-columns:repeat(2,1fr);gap:20px 18px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:20px 18px;
   padding-bottom:28px;
 }
-@media(min-width:560px){.grid{grid-template-columns:repeat(3,1fr)}}
-@media(min-width:860px){.grid{grid-template-columns:repeat(4,1fr)}}
 .bookcard{position:relative;cursor:pointer}
 .cover{
   position:relative;aspect-ratio:2/3;border-radius:8px 12px 12px 8px;overflow:hidden;
@@ -289,13 +302,13 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <div class="shell">
   <header class="appbar">
-    <div class="brand">Folio<span class="dot">.</span><span class="ver">v8</span></div>
+    <div class="brand">Folio<span class="dot">.</span><span class="ver">v10</span></div>
     <div class="appbar-btns">
       <button class="appbar-action" id="btn-uiscale" aria-label="Tamaño" style="padding:0 14px;font-size:17px">Aa</button>
       <button class="appbar-action solid" id="btn-install" style="display:none">Instalar</button>
       <button class="appbar-action" id="btn-import">Importar</button>
     </div>
-    <input type="file" id="file-input" accept=".txt,.epub" hidden>
+    <input type="file" id="file-input" accept=".txt,.epub,.pdf,.mobi,.azw,.azw3" hidden>
   </header>
 
   <main id="main">
@@ -305,7 +318,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
       <div id="library-grid" class="grid"></div>
       <div id="library-empty" class="empty" style="display:none">
         <div class="big">Aún no hay libros</div>
-        <p>Busca y descarga en la pestaña <b>Buscar</b>,<br>o importa tus archivos .txt y .epub</p>
+        <p>Busca y descarga en la pestaña <b>Buscar</b>,<br>o importa tus archivos (EPUB, PDF, MOBI, TXT)</p>
       </div>
     </section>
 
@@ -316,9 +329,9 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
         <input id="search-input" type="search" placeholder="Título o autor…" enterkeyhint="search" autocomplete="off">
       </div>
       <div class="langchips" id="langchips">
-        <button class="langchip" data-lang="es">Español</button>
+        <button class="langchip on" data-lang="es">Español</button>
         <button class="langchip" data-lang="en">English</button>
-        <button class="langchip on" data-lang="">Todos</button>
+        <button class="langchip" data-lang="">Todos</button>
       </div>
       <div id="results" class="results"></div>
     </section>
@@ -329,7 +342,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
         <input id="explore-input" type="search" placeholder="Título o autor…" enterkeyhint="search" autocomplete="off">
       </div>
-      <p class="hint" style="margin:12px 8px 4px">Busca tu libro en varias webs legales. Abre el enlace, descarga el <b>EPUB/TXT</b> y vuelve a Folio para <b>Importar</b>.</p>
+      <p class="hint" style="margin:12px 8px 4px">Busca tu libro en varias webs legales. Abre el enlace, descarga el <b>EPUB, PDF o MOBI</b> y vuelve a Folio para <b>Importar</b>.</p>
       <div id="explore-results" class="results"></div>
     </section>
   </main>
@@ -406,7 +419,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <script>
 'use strict';
-const VERSION = 8;
+const VERSION = 10;
 
 /* ============ Utilidades ============ */
 const $ = s => document.querySelector(s);
@@ -559,7 +572,7 @@ function searchLocal(q, lang) {
       let score = 1;
       if (hay.startsWith(ftitleStart)) score = 3;
       else if (idx === 0 || hay[idx - 1] === ' ' || hay[idx - 1] === '(') score = 2;
-      out.push({ rec, lang: L, score: score + (L === 'es' ? 0.5 : 0) });
+      out.push({ rec, lang: L, score: score + (L === 'es' ? 2 : 0) });
     }
   }
   out.sort((a, b) => b.score - a.score || a.rec[1].length - b.rec[1].length);
@@ -664,7 +677,7 @@ async function searchOpenLibrary(q, lang) {
 /* ============ UI de búsqueda ============ */
 function currentLang() {
   const on = document.querySelector('.langchip.on');
-  return on ? on.dataset.lang : '';
+  return on ? on.dataset.lang : 'es';
 }
 $('#langchips').addEventListener('click', e => {
   const c = e.target.closest('.langchip'); if (!c) return;
@@ -972,17 +985,20 @@ $('#file-input').addEventListener('change', async e => {
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
-  toast('<span class="spin"></span>&nbsp; Importando…', 60000);
+  toast('<span class="spin"></span>&nbsp; Importando…', 120000);
   try {
     let book;
-    if (/\.epub$/i.test(file.name)) book = await importEpub(file);
+    const n = file.name.toLowerCase();
+    if (n.endsWith('.epub')) book = await importEpub(file);
+    else if (n.endsWith('.pdf')) book = await importPdf(file);
+    else if (n.endsWith('.mobi') || n.endsWith('.azw') || n.endsWith('.azw3')) book = await importMobi(file);
     else book = await importTxt(file);
     await putBook(book);
     renderLibrary();
     document.querySelector('.tab[data-view="library"]').click();
     toast(`«${book.title.slice(0, 32)}» importado`);
   } catch (err) {
-    toast('No se pudo importar el archivo');
+    toast(err && err.user ? err.message : 'No se pudo importar el archivo', 4500);
   }
 });
 async function importTxt(file) {
@@ -1031,6 +1047,117 @@ async function importEpub(file) {
     title, author, coverUrl: '',
     text: parts.join('\n\n'),
     addedAt: Date.now()
+  };
+}
+
+/* ============ Importar PDF (pdf.js) ============ */
+async function importPdf(file) {
+  const pdfjs = await ensurePDFJS();
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data: buf }).promise;
+  const pages = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    // Reconstruir líneas usando la posición Y de cada fragmento
+    let line = '', lastY = null;
+    const out = [];
+    for (const it of tc.items) {
+      const y = it.transform[5];
+      if (lastY !== null && Math.abs(y - lastY) > 3) { out.push(line); line = ''; }
+      line += it.str;
+      if (it.hasEOL) { out.push(line); line = ''; }
+      lastY = y;
+    }
+    if (line) out.push(line);
+    pages.push(out.join('\n'));
+    page.cleanup();
+  }
+  pdf.destroy();
+  const raw = pages.join('\n\n');
+  if (raw.replace(/\s/g, '').length < 200) {
+    throw Object.assign(new Error('Ese PDF parece escaneado (sin texto seleccionable); no se puede leer'), { user: true });
+  }
+  return {
+    id: 'local-' + Date.now(),
+    title: file.name.replace(/\.pdf$/i, ''),
+    author: '', coverUrl: '',
+    text: normalizeText(raw), addedAt: Date.now()
+  };
+}
+
+/* ============ Importar MOBI / AZW3 ============ */
+// Lectura mínima de MOBI: localiza los registros PalmDOC, los descomprime (LZ77) y extrae el HTML.
+async function importMobi(file) {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const dv = new DataView(buf.buffer);
+  const td = new TextDecoder('utf-8');
+  // Cabecera PDB: nº de registros en offset 76
+  const numRecs = dv.getUint16(76, false);
+  const recOffsets = [];
+  for (let i = 0; i < numRecs; i++) recOffsets.push(dv.getUint32(78 + i * 8, false));
+  recOffsets.push(buf.length);
+  // Registro 0 = cabecera MOBI: compresión (0/1/2/17480) y nº de registros de texto
+  const rec0 = buf.subarray(recOffsets[0], recOffsets[1]);
+  const r0dv = new DataView(rec0.buffer, rec0.byteOffset, rec0.byteLength);
+  const compression = r0dv.getUint16(0, false);
+  const recordCount = r0dv.getUint16(8, false);
+  // Título desde la cabecera MOBI (si existe)
+  let title = file.name.replace(/\.(mobi|azw3?|azw)$/i, '');
+  try {
+    const exth = rec0.indexOf(0x4D); // 'M' de MOBI magic en offset 16
+    const fullNameOff = r0dv.getUint32(0x54, false);
+    const fullNameLen = r0dv.getUint32(0x58, false);
+    if (fullNameOff && fullNameLen && fullNameLen < 300) {
+      title = td.decode(rec0.subarray(fullNameOff, fullNameOff + fullNameLen)) || title;
+    }
+  } catch (e) { /* usar nombre de archivo */ }
+
+  function palmdocUnpack(data) {
+    // Descompresión PalmDOC (LZ77 variante)
+    const out = [];
+    let i = 0;
+    while (i < data.length) {
+      const b = data[i++];
+      if (b === 0) { out.push(0); }
+      else if (b <= 8) { for (let j = 0; j < b; j++) out.push(data[i++]); }
+      else if (b <= 0x7f) { out.push(b); }
+      else if (b <= 0xbf) {
+        const b2 = data[i++];
+        const dist = ((b << 8 | b2) >> 3) & 0x7ff;
+        let len = (b2 & 7) + 3;
+        let pos = out.length - dist;
+        while (len-- > 0 && pos >= 0) out.push(out[pos++]);
+      } else { out.push(32); out.push(b ^ 0x80); }
+    }
+    return new Uint8Array(out);
+  }
+
+  const chunks = [];
+  for (let i = 1; i <= recordCount; i++) {
+    if (i >= recOffsets.length - 1) break;
+    let data = buf.subarray(recOffsets[i], recOffsets[i + 1]);
+    if (compression === 2) data = palmdocUnpack(data);
+    chunks.push(data);
+  }
+  // Unir bytes y decodificar
+  let total = 0; chunks.forEach(c => total += c.length);
+  const all = new Uint8Array(total);
+  let off = 0; for (const c of chunks) { all.set(c, off); off += c.length; }
+  let html = td.decode(all);
+  // Quitar etiquetas, conservar saltos de párrafo
+  html = html.replace(/<\/(p|div|h[1-6]|br)>/gi, '\n').replace(/<[^>]+>/g, '');
+  html = html.replace(/&nbsp;/g, ' ').replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é')
+             .replace(/&iacute;/g, 'í').replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú')
+             .replace(/&ntilde;/g, 'ñ').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
+             .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n));
+  if (html.replace(/\s/g, '').length < 200) {
+    throw Object.assign(new Error('No se pudo extraer texto del MOBI (puede tener DRM)'), { user: true });
+  }
+  return {
+    id: 'local-' + Date.now(),
+    title, author: '', coverUrl: '',
+    text: normalizeText(html), addedAt: Date.now()
   };
 }
 
@@ -1191,7 +1318,7 @@ renderLibrary();
 ensureCatalog('es');
 
 /* Ganchos para tests automatizados (no afectan al uso normal) */
-window.__folio = { fold, searchLocal, ensureCatalog, EXPLORE_SOURCES, renderExplore, normalizeText, stripGutenberg, renderText,
+window.__folio = { fold, searchLocal, ensureCatalog, EXPLORE_SOURCES, renderExplore, importPdf, importMobi, normalizeText, stripGutenberg, renderText,
   downloadGutenberg, downloadArchive, downloadWikisource, searchWikisource, searchOpenLibrary, putBook, getBook, allBooks, CAT, runSearch, showPopular };
 </script>
 </body>
