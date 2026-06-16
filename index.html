@@ -753,10 +753,10 @@ async function searchWikisource(q) {
     // Solo obras con texto real: las fichas/índices tienen pocas palabras.
     // Las obras largas a veces son índices (pocas palabras) PERO con subpáginas:
     // marcamos como 'directa' las que ya traen >1200 palabras; el resto se intentará por subpáginas.
-    const BAD = /(\/(ediciones|edici[oó]n|[ií]ndice|datos|portada|biograf[ií]a|cr[ií]tica|an[aá]lisis))$/i;
+    const BAD = /(\/(ediciones|edici[oó]n|datos|portada|biograf[ií]a))$/i;
+    // Antes el umbral 800 escondía casi todo. Bajamos a 150 y dejamos pasar obras con subpáginas '/'.
     return all.map(s => ({ title: s.title, words: s.wordcount || 0 }))
-              // Solo obras con texto sustancial; fuera fichas e índices.
-              .filter(s => s.words >= 800 && !BAD.test(s.title));
+              .filter(s => (s.words >= 150 || /\//.test(s.title)) && !BAD.test(s.title));
   } catch (e) { clearTimeout(t); throw e; }
 }
 // ¿Una obra tiene subpáginas con capítulos? Devuelve la lista (vacía si no).
@@ -893,15 +893,15 @@ async function showPopular() {
 function gutenbergRow(rec, lang) {
   const [id, title, author] = rec;
   const cover = genCover(title, author);
-  const url = `https://www.gutenberg.org/ebooks/${id}`;
+  const payload = esc(JSON.stringify({ t: 'gb', id, title, author }));
   return `<div class="result">
     <div class="rcover" data-title="${esc(title)}" data-author="${esc(author)}">${cover}</div>
     <div class="rinfo">
       <div class="rt">${esc(title)}</div>
       <div class="ra">${esc(author || 'Anónimo')}</div>
-      <div class="rl">Gutenberg · ${lang === 'es' ? 'Español' : lang === 'en' ? 'English' : ''} · abrir y descargar</div>
+      <div class="rl">Gutenberg · ${lang === 'es' ? 'Español' : lang === 'en' ? 'English' : ''}</div>
     </div>
-    <a class="dl" href="${url}" target="_blank" rel="noopener" aria-label="Abrir en Gutenberg">${LINK_ICON}</a>
+    <button class="dl" data-key="gb-${id}" data-book='${payload}' aria-label="Descargar">${DL_ICON}</button>
   </div>`;
 }
 
@@ -1089,7 +1089,8 @@ $('#results').addEventListener('click', async e => {
   btn.disabled = true;
   btn.innerHTML = '<span class="spin"></span>';
   try {
-    if (meta.t === 'ws') await downloadWikisource(meta);
+    if (meta.t === 'gb') await downloadGutenberg(meta);
+    else if (meta.t === 'ws') await downloadWikisource(meta);
     else await downloadArchive(meta);
     btn.classList.add('have');
     btn.innerHTML = OK_ICON;
