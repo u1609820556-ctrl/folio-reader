@@ -136,12 +136,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
   clip-path:polygon(0 0,100% 0,100% 100%,50% calc(100% - 7px),0 100%);
   box-shadow:0 1px 3px rgba(0,0,0,.3);
 }
-.del{
-  position:absolute;top:8px;left:13px;z-index:2;
-  width:34px;height:34px;border-radius:50%;
-  background:rgba(20,17,14,.6);color:#fff;font-size:21px;line-height:1;
-  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);
-}
+/* .del eliminado — borrar vía menú contextual */
 .bookmeta{margin-top:10px}
 .bt{font-weight:600;font-size:15px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ba{font-size:13px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -287,6 +282,66 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 .stepper span{font-size:17px;font-weight:700;min-width:42px;text-align:center}
 
 /* ---------- Toast & spinner ---------- */
+.ctx-bg{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.5);display:none}
+.ctx-bg.open{display:block}
+.ctx-menu{
+  position:fixed;left:0;right:0;bottom:0;z-index:71;display:none;
+  background:var(--card);border-radius:22px 22px 0 0;
+  padding:10px 0 calc(env(safe-area-inset-bottom) + 12px);
+  max-width:640px;margin:0 auto;width:100%;
+  box-shadow:0 -8px 30px rgba(0,0,0,.45);
+}
+.ctx-menu.open{display:block}
+.ctx-title{
+  font-size:13px;font-weight:700;color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.08em;
+  padding:8px 20px 12px;border-bottom:1px solid var(--line);margin-bottom:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ctx-btn{
+  width:100%;padding:16px 20px;text-align:left;font-size:16px;font-weight:600;
+  color:var(--ink);background:none;border:none;display:flex;align-items:center;gap:14px;
+}
+.ctx-btn:active{background:var(--line)}
+.ctx-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;flex-shrink:0}
+.ctx-btn.danger{color:#e05a4a}
+.library-section-title{
+  font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-soft);margin:22px 0 12px;display:flex;align-items:center;gap:8px;
+}
+.library-section-title .count{
+  background:var(--line);color:var(--ink-soft);
+  font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700;
+}
+.ctx-bg{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.5);display:none}
+.ctx-bg.open{display:block}
+.ctx-menu{
+  position:fixed;left:0;right:0;bottom:0;z-index:71;display:none;
+  background:var(--card);border-radius:22px 22px 0 0;
+  padding:10px 0 calc(env(safe-area-inset-bottom)+12px);
+  max-width:640px;margin:0 auto;width:100%;
+  box-shadow:0 -8px 30px rgba(0,0,0,.5);
+}
+.ctx-menu.open{display:block}
+.ctx-title{
+  font-size:13px;font-weight:700;color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.08em;
+  padding:8px 20px 12px;border-bottom:1px solid var(--line);margin-bottom:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ctx-btn{
+  width:100%;padding:15px 20px;text-align:left;font-size:16px;font-weight:600;
+  color:var(--ink);background:none;border:none;display:flex;align-items:center;gap:14px;
+}
+.ctx-btn:active{background:rgba(255,255,255,.05)}
+.ctx-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;flex-shrink:0}
+.ctx-btn.danger{color:#e05a4a}
+.lib-section{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-soft);margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+.lib-section .cnt{background:var(--line);color:var(--ink-soft);
+  font-size:11px;padding:2px 7px;border-radius:99px}
+.bdate{font-size:11px;color:var(--ink-soft);margin-top:3px}
+.bdate.finished-date{color:#5A9E72;font-weight:700}
 #toast{
   position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
   background:#221C16;color:#F3EFE6;padding:14px 22px;border-radius:99px;
@@ -310,7 +365,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <div class="shell">
   <header class="appbar">
-    <div class="brand">Folio<span class="dot">.</span><span class="ver">v13</span></div>
+    <div class="brand">Folio<span class="dot">.</span><span class="ver">v15</span></div>
     <div class="appbar-btns">
       <button class="appbar-action" id="btn-uiscale" aria-label="Tamaño" style="padding:0 14px;font-size:17px">Aa</button>
       <button class="appbar-action solid" id="btn-install" style="display:none">Instalar</button>
@@ -423,11 +478,35 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
     <span>Más pequeño</span><span id="scale-val" style="font-weight:700;color:#2E5641">100%</span><span>Más grande</span>
   </div>
 </div>
+<div class="ctx-bg" id="ctx-bg"></div>
+<div class="ctx-menu" id="ctx-menu">
+  <div class="ctx-title" id="ctx-title"></div>
+  <button class="ctx-btn" id="ctx-shelf">
+    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    <span id="ctx-shelf-label"></span>
+  </button>
+  <button class="ctx-btn danger" id="ctx-delete">
+    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    Eliminar libro
+  </button>
+</div>
+<div class="ctx-bg" id="ctx-bg"></div>
+<div class="ctx-menu" id="ctx-menu">
+  <div class="ctx-title" id="ctx-title"></div>
+  <button class="ctx-btn" id="ctx-shelf">
+    <svg viewBox="0 0 24 24" id="ctx-shelf-icon"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    <span id="ctx-shelf-label"></span>
+  </button>
+  <button class="ctx-btn danger" id="ctx-delete">
+    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    Eliminar libro
+  </button>
+</div>
 <div id="toast"></div>
 
 <script>
 'use strict';
-const VERSION = 13;
+const VERSION = 15;
 
 /* ============ Utilidades ============ */
 const $ = s => document.querySelector(s);
@@ -495,21 +574,27 @@ function genCover(title, author) {
 const gbCover = () => '';
 
 /* ============ Biblioteca ============ */
+const FMT = ts => ts ? new Date(ts).toLocaleDateString('es-ES', {day:'numeric',month:'short',year:'numeric'}) : '';
 async function renderLibrary() {
   const [books, progs] = await Promise.all([allBooks(), allProg()]);
   const pmap = {}; progs.forEach(p => pmap[p.id] = p);
-  books.sort((a, b) => (pmap[b.id]?.updatedAt || b.addedAt) - (pmap[a.id]?.updatedAt || a.addedAt));
+  const reading  = books.filter(b => !b.shelf || b.shelf !== 'finished');
+  const finished = books.filter(b => b.shelf === 'finished');
+  reading.sort((a, b) => (pmap[b.id]?.updatedAt || b.addedAt) - (pmap[a.id]?.updatedAt || a.addedAt));
+  finished.sort((a, b) => (b.finishedAt || 0) - (a.finishedAt || 0));
   const grid = $('#library-grid');
-  $('#library-empty').style.display = books.length ? 'none' : '';
-  grid.innerHTML = books.map(b => {
+  const total = books.length;
+  $('#library-empty').style.display = total ? 'none' : '';
+  function bookCard(b) {
     const pr = pmap[b.id];
     const pct = pr ? Math.round(pr.ratio * 100) : 0;
-    const ribbonH = pr && pr.ratio > 0.005 ? Math.max(14, Math.round(pr.ratio * 88)) : 0;
+    const ribbonH = b.shelf === 'finished' ? 88 : (pr && pr.ratio > 0.005 ? Math.max(14, Math.round(pr.ratio * 88)) : 0);
     const coverInner = b.coverUrl
       ? `<img src="${esc(b.coverUrl)}" alt="" loading="lazy" onerror="this.outerHTML=window.genCoverFallback(this)">`
       : genCover(b.title, b.author);
-    return `<div class="bookcard" data-id="${esc(b.id)}">
-      <button class="del" data-del="${esc(b.id)}" aria-label="Eliminar">×</button>
+    const addedStr = FMT(b.addedAt);
+    const finishedStr = b.shelf === 'finished' && b.finishedAt ? FMT(b.finishedAt) : '';
+    return `<div class="bookcard" data-id="${esc(b.id)}" data-shelf="${esc(b.shelf||'')}">
       <div class="cover" data-title="${esc(b.title)}" data-author="${esc(b.author || '')}">
         ${coverInner}<div class="spine"></div>
         ${ribbonH ? `<div class="ribbon" style="height:${ribbonH}%"></div>` : ''}
@@ -517,30 +602,92 @@ async function renderLibrary() {
       <div class="bookmeta">
         <div class="bt">${esc(b.title)}</div>
         <div class="ba">${esc(b.author || '')}</div>
-        <div class="bp">${pct > 0 ? (pct >= 99 ? 'Terminado' : pct + '% leído') : 'Sin empezar'}</div>
+        <div class="bp">${b.shelf==='finished' ? '✓ Leído' : pct > 0 ? (pct >= 99 ? 'Terminado' : pct + '% leído') : 'Sin empezar'}</div>
+        ${finishedStr ? `<div class="bdate finished-date">Terminado: ${esc(finishedStr)}</div>` : ''}
+        ${addedStr ? `<div class="bdate">Añadido: ${esc(addedStr)}</div>` : ''}
       </div>
     </div>`;
-  }).join('');
+  }
+  let html = '';
+  if (reading.length) {
+    html += `<div class="lib-section">Leyendo <span class="cnt">${reading.length}</span></div>
+             <div class="grid">${reading.map(bookCard).join('')}</div>`;
+  }
+  if (finished.length) {
+    html += `<div class="lib-section" style="margin-top:${reading.length?'28px':'0'}">Leídos <span class="cnt">${finished.length}</span></div>
+             <div class="grid">${finished.map(bookCard).join('')}</div>`;
+  }
+  grid.innerHTML = html;
 }
 window.genCoverFallback = function(img) {
   const c = img.closest('.cover');
   return genCover(c.dataset.title, c.dataset.author);
 };
-$('#library-grid').addEventListener('click', async e => {
-  const del = e.target.closest('[data-del]');
-  if (del) {
-    e.stopPropagation();
-    const id = del.dataset.del;
-    const b = await getBook(id);
-    if (b && confirm(`¿Eliminar «${b.title}» de tu biblioteca?`)) {
-      await delBook(id); await delProg(id); renderLibrary();
-      toast('Libro eliminado');
-    }
-    return;
-  }
-  const card = e.target.closest('.bookcard');
-  if (card) openReader(card.dataset.id);
+/* ── Menú contextual (long press) ── */
+let ctxId = null, lpTimer = null, lpMoved = false;
+const openCtx  = () => { $('#ctx-menu').classList.add('open'); $('#ctx-bg').classList.add('open'); };
+const closeCtx = () => { $('#ctx-menu').classList.remove('open'); $('#ctx-bg').classList.remove('open'); ctxId = null; };
+$('#ctx-bg').addEventListener('click', closeCtx);
+
+async function showCtx(id) {
+  const b = await getBook(id);
+  if (!b) return;
+  ctxId = id;
+  $('#ctx-title').textContent = b.title;
+  const isFinished = b.shelf === 'finished';
+  $('#ctx-shelf-label').textContent = isFinished ? 'Mover a Leyendo' : 'Marcar como leído';
+  $('#ctx-shelf-icon').innerHTML = isFinished
+    ? '<path d="M19 12H5M12 5l-7 7 7 7"/>'
+    : '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>';
+  openCtx();
+}
+
+$('#ctx-shelf').addEventListener('click', async () => {
+  if (!ctxId) return;
+  const b = await getBook(ctxId);
+  if (!b) return;
+  const nowFinished = b.shelf !== 'finished';
+  b.shelf = nowFinished ? 'finished' : '';
+  if (nowFinished) b.finishedAt = Date.now();
+  else delete b.finishedAt;
+  await putBook(b);
+  closeCtx();
+  renderLibrary();
+  toast(nowFinished ? `«${b.title.slice(0,28)}» añadido a Leídos` : 'Movido a Leyendo');
 });
+
+$('#ctx-delete').addEventListener('click', async () => {
+  if (!ctxId) return;
+  const b = await getBook(ctxId);
+  if (b && confirm(`¿Eliminar «${b.title}»?`)) {
+    await delBook(ctxId); await delProg(ctxId);
+    closeCtx(); renderLibrary(); toast('Libro eliminado');
+  }
+});
+
+/* Long press + tap en la rejilla */
+$('#library-grid').addEventListener('pointerdown', e => {
+  const card = e.target.closest('.bookcard');
+  if (!card) return;
+  lpMoved = false;
+  lpTimer = setTimeout(() => {
+    lpTimer = null;
+    showCtx(card.dataset.id);
+  }, 500);
+}, { passive: true });
+
+$('#library-grid').addEventListener('pointermove', () => {
+  if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; lpMoved = true; }
+}, { passive: true });
+
+$('#library-grid').addEventListener('pointerup', e => {
+  if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+  if (lpMoved) { lpMoved = false; return; }
+  const card = e.target.closest('.bookcard');
+  if (card && !$('#ctx-menu').classList.contains('open')) openReader(card.dataset.id);
+});
+
+$('#library-grid').addEventListener('contextmenu', e => e.preventDefault());
 
 /* ============ Catálogo local (Gutenberg completo) ============
    catalog-es.json: TODOS los libros en español de Project Gutenberg (801)
@@ -1326,7 +1473,7 @@ renderLibrary();
 ensureCatalog('es');
 
 /* Ganchos para tests automatizados (no afectan al uso normal) */
-window.__folio = { fold, searchLocal, ensureCatalog, EXPLORE_SOURCES, renderExplore, importPdf, importMobi, normalizeText, stripGutenberg, renderText,
+window.__folio = { fold, searchLocal, ensureCatalog, EXPLORE_SOURCES, renderExplore, importPdf, importMobi, FMT, showCtx, putBook, getBook, renderLibrary, normalizeText, stripGutenberg, renderText,
   downloadGutenberg, downloadArchive, downloadWikisource, searchWikisource, searchOpenLibrary, putBook, getBook, allBooks, CAT, runSearch, showPopular };
 </script>
 </body>
