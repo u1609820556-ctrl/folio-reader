@@ -109,7 +109,8 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
   display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:20px 18px;
   padding-bottom:28px;
 }
-.bookcard{position:relative;cursor:pointer}
+.bookcard{position:relative;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.bookcard img{-webkit-touch-callout:none;pointer-events:none;-webkit-user-drag:none;user-drag:none}
 .cover{
   position:relative;aspect-ratio:2/3;border-radius:8px 12px 12px 8px;overflow:hidden;
   box-shadow:0 2px 6px rgba(34,28,22,.18),0 8px 20px rgba(34,28,22,.10);
@@ -365,7 +366,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <div class="shell">
   <header class="appbar">
-    <div class="brand">Folio<span class="dot">.</span><span class="ver">v15</span></div>
+    <div class="brand">Folio<span class="dot">.</span><span class="ver">v16</span></div>
     <div class="appbar-btns">
       <button class="appbar-action" id="btn-uiscale" aria-label="Tamaño" style="padding:0 14px;font-size:17px">Aa</button>
       <button class="appbar-action solid" id="btn-install" style="display:none">Instalar</button>
@@ -378,7 +379,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
     <!-- BIBLIOTECA -->
     <section id="view-library">
       <div class="section-label">Mi biblioteca</div>
-      <div id="library-grid" class="grid"></div>
+      <div id="library-grid"></div>
       <div id="library-empty" class="empty" style="display:none">
         <div class="big">Aún no hay libros</div>
         <p>Busca y descarga en la pestaña <b>Buscar</b>,<br>o importa tus archivos (EPUB, PDF, MOBI, TXT)</p>
@@ -506,7 +507,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <script>
 'use strict';
-const VERSION = 15;
+const VERSION = 16;
 
 /* ============ Utilidades ============ */
 const $ = s => document.querySelector(s);
@@ -687,7 +688,11 @@ $('#library-grid').addEventListener('pointerup', e => {
   if (card && !$('#ctx-menu').classList.contains('open')) openReader(card.dataset.id);
 });
 
-$('#library-grid').addEventListener('contextmenu', e => e.preventDefault());
+$('#library-grid').addEventListener('contextmenu', e => { e.preventDefault(); return false; });
+// Bloquear también el menú de selección de imagen a nivel de tarjeta
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('#library-grid')) { e.preventDefault(); return false; }
+});
 
 /* ============ Catálogo local (Gutenberg completo) ============
    catalog-es.json: TODOS los libros en español de Project Gutenberg (801)
