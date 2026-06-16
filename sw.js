@@ -5,8 +5,8 @@
    - Estáticos de terceros (fuentes, JSZip): caché primero, se guardan al vuelo.
    - API de libros y descargas: solo red, nunca se cachean (los libros viven en IndexedDB). */
 
-const CACHE = 'folio-v16';
-const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './catalog-es.json?v=16', './popular.json?v=16'];
+const CACHE = 'folio-v17';
+const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './catalog-es.json?v=17', './popular.json?v=17'];
 const NEVER_CACHE = ['gutendex.com', 'corsproxy.io', 'allorigins.win', 'gutenberg.org', 'openlibrary.org', 'archive.org'];
 
 self.addEventListener('install', e => {
