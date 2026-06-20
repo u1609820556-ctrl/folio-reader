@@ -245,6 +245,11 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
   margin:1.8em 0 .8em;line-height:1.25;
 }
 #rcontent .verse{white-space:pre-wrap}
+#rcontent blockquote{
+  margin:1.7em 0;padding:.6em 1.1em;
+  border-left:3px solid var(--r-accent,#5A9E72);
+  font-size:.92em;letter-spacing:.02em;color:var(--r-ink);opacity:.85;
+}
 .rfoot{
   position:absolute;bottom:0;left:0;right:0;pointer-events:none;
   text-align:center;padding:10px 0 calc(env(safe-area-inset-bottom) + 10px);
@@ -372,7 +377,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <div class="shell">
   <header class="appbar">
-    <div class="brand">Folio<span class="dot">.</span><span class="ver">v19</span></div>
+    <div class="brand">Folio<span class="dot">.</span><span class="ver">v20</span></div>
     <div class="appbar-btns">
       <button class="appbar-action" id="btn-uiscale" aria-label="Tamaño" style="padding:0 14px;font-size:17px">Aa</button>
       <button class="appbar-action solid" id="btn-install" style="display:none">Instalar</button>
@@ -513,7 +518,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <script>
 'use strict';
-const VERSION = 19;
+const VERSION = 20;
 
 /* ============ Utilidades ============ */
 const $ = s => document.querySelector(s);
@@ -1138,6 +1143,41 @@ function splitInlineHeadings(text) {
     .replace(/\s+(PARTE\s+(PRIMERA|SEGUNDA|TERCERA|CUARTA|QUINTA|[IVXLCD]+))/gi, '\n\n$1\n\n');
 }
 
+// Separa tramos en MAYÚSCULAS (citas, atribuciones, epígrafes) embebidos en un párrafo.
+// Los EPUB por OCR meten la cita pegada al texto; aquí la aislamos como bloque propio.
+function extractInlineCaps(para) {
+  const tokens = para.match(/\S+/g) || [];
+  if (tokens.length < 6) return [para];
+  const isStrongCap = w => {
+    const clean = w.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü]/g, '');
+    if (!clean) return null;                       // solo puntuación → neutro
+    if (/^(de|la|el|y|en|a|del|las|los|su|un|e|o)$/i.test(clean)) return 'neutral';
+    return clean === clean.toUpperCase() && /[A-ZÁÉÍÓÚÑÜ]/.test(clean) && clean.length > 1;
+  };
+  const segs = [];
+  let cur = { caps: false, words: [] };
+  for (const tok of tokens) {
+    const s = isStrongCap(tok);
+    const goCaps = s === true || (s === 'neutral' && cur.caps);
+    if (goCaps && !cur.caps && cur.words.length) { segs.push(cur); cur = { caps: true, words: [] }; }
+    else if (goCaps && !cur.caps) cur.caps = true;
+    else if (!goCaps && cur.caps && s !== 'neutral') { segs.push(cur); cur = { caps: false, words: [] }; }
+    cur.words.push(tok);
+  }
+  if (cur.words.length) segs.push(cur);
+  // Solo aislar como cita los tramos con >=4 palabras realmente en mayúsculas
+  const out = [];
+  for (const sg of segs) {
+    const strong = sg.words.filter(w => isStrongCap(w) === true).length;
+    const txt = sg.words.join(' ').trim();
+    if (!txt) continue;
+    if (sg.caps && strong >= 4) out.push('>' + txt);   // marcador de cita
+    else out.push(txt);
+  }
+  // Si no se aisló nada, devolver el párrafo entero
+  return out.length ? out : [para];
+}
+
 function normalizeText(raw) {
   // Si el texto casi no tiene saltos de párrafo (PDF corrido), intentar trocearlo por títulos
   const paraBreaks = (raw.match(/\n\s*\n/g) || []).length;
@@ -1159,21 +1199,26 @@ function normalizeText(raw) {
     const isUpperHeading = joined.length >= 3 && joined.length < 65 && upperRatio > 0.85 && letters.length > 2;
 
     if (isKeywordHeading || isUpperHeading) {
-      // Título grande de nivel 1 si es capítulo/ley/parte; subtítulo (nivel 2) si solo mayúsculas
-      const prefix = isKeywordHeading ? '#' : '#';
-      out.push(prefix + joined);
+      out.push('#' + joined);
       continue;
     }
 
     const isVerse = lines.length >= 3 && maxLen < 55;
-    if (isVerse) out.push('|' + lines.join('\n'));
-    else out.push(joined);
+    if (isVerse) { out.push('|' + lines.join('\n')); continue; }
+
+    // 3) Párrafo normal: buscar citas/epígrafes en mayúsculas embebidos y aislarlos
+    if (joined.length > 120) {
+      for (const piece of extractInlineCaps(joined)) out.push(piece);
+    } else {
+      out.push(joined);
+    }
   }
   return out.join('\n\n');
 }
 function renderText(text) {
   return text.split('\n\n').map(p => {
     if (p[0] === '#') return `<h3>${esc(p.slice(1))}</h3>`;
+    if (p[0] === '>') return `<blockquote>${esc(p.slice(1))}</blockquote>`;
     if (p[0] === '|') return `<p class="verse">${esc(p.slice(1))}</p>`;
     return `<p>${esc(p)}</p>`;
   }).join('');
@@ -1235,10 +1280,25 @@ async function importEpub(file) {
     if (!f) continue;
     const html = await f.async('string');
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    doc.querySelectorAll('p, h1, h2, h3, h4, blockquote, li').forEach(el => {
+    // Recorrer solo bloques de nivel superior para no duplicar texto de elementos anidados
+    // (ej: un <blockquote> que contiene <p> no debe emitirse dos veces).
+    const blocks = doc.body ? doc.body.querySelectorAll('h1, h2, h3, h4, h5, h6, p, blockquote, li, div') : [];
+    const seen = new Set();
+    blocks.forEach(el => {
+      // Saltar si este elemento está dentro de otro que ya vamos a procesar como bloque de cita
+      if (el.closest('blockquote') && el.tagName !== 'BLOCKQUOTE') return;
+      // Saltar divs que solo contienen otros bloques (contenedores)
+      if (el.tagName === 'DIV' && el.querySelector('p, h1, h2, h3, h4, blockquote, li, div')) return;
       const t = el.textContent.replace(/\s+/g, ' ').trim();
-      if (!t) return;
-      parts.push(/^H[1-4]$/.test(el.tagName) ? '#' + t : t);
+      if (!t || seen.has(t)) return;
+      seen.add(t);
+      const tag = el.tagName;
+      // Detectar si es cita por clase/atributo además de blockquote
+      const cls = (el.getAttribute('class') || '').toLowerCase();
+      const isQuote = tag === 'BLOCKQUOTE' || /(cita|quote|epigraf|epígraf|verse)/.test(cls);
+      if (/^H[1-6]$/.test(tag)) parts.push('#' + t);
+      else if (isQuote) parts.push('>' + t);
+      else parts.push(t);
     });
   }
   if (!parts.length) throw new Error('epub-empty');
@@ -1546,7 +1606,7 @@ renderLibrary();
 ensureCatalog('es');
 
 /* Ganchos para tests automatizados (no afectan al uso normal) */
-window.__folio = { fold, searchLocal, ensureCatalog, EXPLORE_SOURCES, renderExplore, importPdf, importMobi, FMT, showCtx, putBook, getBook, renderLibrary, normalizeText, renderText, splitInlineHeadings, normalizeText, stripGutenberg, renderText,
+window.__folio = { fold, searchLocal, ensureCatalog, EXPLORE_SOURCES, renderExplore, importPdf, importMobi, FMT, showCtx, putBook, getBook, renderLibrary, normalizeText, renderText, splitInlineHeadings, extractInlineCaps, normalizeText, stripGutenberg, renderText,
   downloadGutenberg, downloadArchive, downloadWikisource, searchWikisource, searchOpenLibrary, putBook, getBook, allBooks, CAT, runSearch, showPopular };
 </script>
 </body>
