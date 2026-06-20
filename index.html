@@ -274,12 +274,12 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
   box-shadow:0 -8px 30px rgba(20,17,14,.18);
 }
 .sheet.open{display:block}
-.sheet h4{font-family:var(--display);font-size:20px;margin-bottom:20px;font-weight:700}
+.sheet h4{font-family:var(--display);font-size:23px;margin-bottom:24px;font-weight:700}
 .setrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
-.setlabel{font-size:15px;font-weight:600;color:var(--r-soft,#857A6B)}
+.setlabel{font-size:17px;font-weight:600;color:var(--r-soft,#857A6B)}
 .chips{display:flex;gap:10px;flex-wrap:wrap}
 .chip{
-  padding:0 18px;height:46px;border-radius:99px;font-size:15px;font-weight:700;
+  padding:0 22px;height:52px;border-radius:99px;font-size:16px;font-weight:700;
   border:2px solid var(--r-line,#DFD7C8);color:inherit;
   display:flex;align-items:center;background:transparent;
 }
@@ -287,11 +287,11 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 .chip:active{opacity:.7}
 .stepper{display:flex;align-items:center;gap:16px}
 .stepper button{
-  width:48px;height:48px;border-radius:50%;border:2px solid var(--r-line,#DFD7C8);
-  font-size:22px;font-weight:600;display:flex;align-items:center;justify-content:center;
+  width:56px;height:56px;border-radius:50%;border:2px solid var(--r-line,#DFD7C8);
+  font-size:26px;font-weight:600;display:flex;align-items:center;justify-content:center;
 }
 .stepper button:active{opacity:.7}
-.stepper span{font-size:17px;font-weight:700;min-width:42px;text-align:center}
+.stepper span{font-size:20px;font-weight:700;min-width:48px;text-align:center}
 
 /* ---------- Toast & spinner ---------- */
 .ctx-bg{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.5);display:none}
@@ -299,54 +299,22 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 .ctx-menu{
   position:fixed;left:0;right:0;bottom:0;z-index:71;display:none;
   background:var(--card);border-radius:22px 22px 0 0;
-  padding:10px 0 calc(env(safe-area-inset-bottom) + 12px);
-  max-width:640px;margin:0 auto;width:100%;
-  box-shadow:0 -8px 30px rgba(0,0,0,.45);
-}
-.ctx-menu.open{display:block}
-.ctx-title{
-  font-size:13px;font-weight:700;color:var(--ink-soft);
-  text-transform:uppercase;letter-spacing:.08em;
-  padding:8px 20px 12px;border-bottom:1px solid var(--line);margin-bottom:6px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.ctx-btn{
-  width:100%;padding:16px 20px;text-align:left;font-size:16px;font-weight:600;
-  color:var(--ink);background:none;border:none;display:flex;align-items:center;gap:14px;
-}
-.ctx-btn:active{background:var(--line)}
-.ctx-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;flex-shrink:0}
-.ctx-btn.danger{color:#e05a4a}
-.library-section-title{
-  font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--ink-soft);margin:22px 0 12px;display:flex;align-items:center;gap:8px;
-}
-.library-section-title .count{
-  background:var(--line);color:var(--ink-soft);
-  font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700;
-}
-.ctx-bg{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.5);display:none}
-.ctx-bg.open{display:block}
-.ctx-menu{
-  position:fixed;left:0;right:0;bottom:0;z-index:71;display:none;
-  background:var(--card);border-radius:22px 22px 0 0;
-  padding:10px 0 calc(env(safe-area-inset-bottom)+12px);
+  padding:8px 0 calc(env(safe-area-inset-bottom) + 18px);
   max-width:640px;margin:0 auto;width:100%;
   box-shadow:0 -8px 30px rgba(0,0,0,.5);
 }
 .ctx-menu.open{display:block}
 .ctx-title{
-  font-size:13px;font-weight:700;color:var(--ink-soft);
-  text-transform:uppercase;letter-spacing:.08em;
-  padding:8px 20px 12px;border-bottom:1px solid var(--line);margin-bottom:6px;
+  font-size:16px;font-weight:700;color:var(--ink);
+  padding:18px 24px 16px;border-bottom:1px solid var(--line);margin-bottom:8px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .ctx-btn{
-  width:100%;padding:15px 20px;text-align:left;font-size:16px;font-weight:600;
-  color:var(--ink);background:none;border:none;display:flex;align-items:center;gap:14px;
+  width:100%;padding:20px 24px;text-align:left;font-size:18px;font-weight:600;
+  color:var(--ink);background:none;border:none;display:flex;align-items:center;gap:18px;
 }
 .ctx-btn:active{background:rgba(255,255,255,.05)}
-.ctx-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;flex-shrink:0}
+.ctx-btn svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
 .ctx-btn.danger{color:#e05a4a}
 .lib-section{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
   color:var(--ink-soft);margin:22px 0 10px;display:flex;align-items:center;gap:8px}
@@ -377,7 +345,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <div class="shell">
   <header class="appbar">
-    <div class="brand">Folio<span class="dot">.</span><span class="ver">v20</span></div>
+    <div class="brand">Folio<span class="dot">.</span><span class="ver">v21</span></div>
     <div class="appbar-btns">
       <button class="appbar-action" id="btn-uiscale" aria-label="Tamaño" style="padding:0 14px;font-size:17px">Aa</button>
       <button class="appbar-action solid" id="btn-install" style="display:none">Instalar</button>
@@ -485,9 +453,9 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 <div class="sheet" id="scale-sheet">
   <h4>Tamaño de la interfaz</h4>
   <input id="scale-range" type="range" min="80" max="200" step="5" value="100"
-    style="width:100%;height:44px;accent-color:#2E5641">
-  <div style="display:flex;justify-content:space-between;font-size:13px;color:#857A6B;margin-top:4px">
-    <span>Más pequeño</span><span id="scale-val" style="font-weight:700;color:#2E5641">100%</span><span>Más grande</span>
+    style="width:100%;height:48px;accent-color:var(--green)">
+  <div style="display:flex;justify-content:space-between;font-size:15px;color:var(--ink-soft);margin-top:8px">
+    <span>Más pequeño</span><span id="scale-val" style="font-weight:700;color:var(--green);font-size:17px">100%</span><span>Más grande</span>
   </div>
 </div>
 <div class="ctx-bg" id="ctx-bg"></div>
@@ -518,7 +486,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;p
 
 <script>
 'use strict';
-const VERSION = 20;
+const VERSION = 21;
 
 /* ============ Utilidades ============ */
 const $ = s => document.querySelector(s);
@@ -610,6 +578,9 @@ async function renderLibrary() {
       <div class="cover" data-title="${esc(b.title)}" data-author="${esc(b.author || '')}">
         ${coverInner}<div class="spine"></div>
         ${ribbonH ? `<div class="ribbon" style="height:${ribbonH}%"></div>` : ''}
+        <button class="menu-dots" data-menu="${esc(b.id)}" aria-label="Opciones">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+        </button>
       </div>
       <div class="bookmeta">
         <div class="bt">${esc(b.title)}</div>
@@ -695,6 +666,9 @@ $('#library-grid').addEventListener('pointermove', () => {
 $('#library-grid').addEventListener('pointerup', e => {
   if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
   if (lpMoved) { lpMoved = false; return; }
+  // Botón de 3 puntos → abrir menú, no el libro
+  const dots = e.target.closest('[data-menu]');
+  if (dots) { e.stopPropagation(); showCtx(dots.dataset.menu); return; }
   const card = e.target.closest('.bookcard');
   if (card && !$('#ctx-menu').classList.contains('open')) openReader(card.dataset.id);
 });
@@ -1302,10 +1276,18 @@ async function importEpub(file) {
     });
   }
   if (!parts.length) throw new Error('epub-empty');
+  // Procesar párrafos normales para aislar citas/epígrafes en mayúsculas embebidos
+  // (EPUB por OCR meten la cita pegada al texto). Los marcadores #/>/| ya puestos se respetan.
+  const processed = [];
+  for (const p of parts) {
+    if (p[0] === '#' || p[0] === '>' || p[0] === '|') { processed.push(p); continue; }
+    if (p.length > 120) { for (const piece of extractInlineCaps(p)) processed.push(piece); }
+    else processed.push(p);
+  }
   return {
     id: 'local-' + Date.now(),
     title, author, coverUrl: '',
-    text: parts.join('\n\n'),
+    text: processed.join('\n\n'),
     addedAt: Date.now()
   };
 }
